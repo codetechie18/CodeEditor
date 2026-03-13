@@ -1,226 +1,173 @@
-import { useState, useEffect, useRef } from "react";
-import { io } from "socket.io-client";
-import CodeEditor from "../components/CodeEditor.jsx";
-import OutputConsole from "../components/OutputConsole.jsx";
-import UsersList from "../components/UsersList.jsx";
-import AIExplain from "../components/AIExplain.jsx";
-import "../styles/editor.css";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import axios from 'axios';
+import { io } from 'socket.io-client';
+import CodeEditor from '../components/CodeEditor.jsx';
+import OutputConsole from '../components/OutputConsole.jsx';
+import UsersList from '../components/UsersList.jsx';
+import AIExplain from '../components/AIExplain.jsx';
+import '../styles/editor.css';
 
-export default function Editor({ roomId, onBackToHome, username = "Anonymous" }) {
+// Yahan apne backend ka URL check kar lein
+const BACKEND_URL = 'http://localhost:5000';
 
+export default function Editor({ roomId, onBackToHome, username = 'Anonymous' }) {
   const [code, setCode] = useState('// Start coding here\nconsole.log("Hello, World!");');
-  const [language, setLanguage] = useState("javascript");   // ✅ fixed
-  const [output, setOutput] = useState("");
+  const [language, setLanguage] = useState('javascript');
+  const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [users, setUsers] = useState([]);
 
   const socketRef = useRef(null);
 
-  // SOCKET CONNECTION
+  // --- 1. SOCKET INITIALIZATION ---
   useEffect(() => {
+    // Socket connection setup
+    socketRef.current = io(BACKEND_URL);
 
-    socketRef.current = io("http://localhost:5000");
+    // Join Room
+    // Editor.jsx ke useEffect mein:
+socketRef.current.emit('join-room', { 
+    roomId, 
+    username: username || 'Anonymous' // Ensure username is never undefined
+});
 
-    socketRef.current.emit("join-room", { roomId, username });
-
-    socketRef.current.on("room-users", (clients) => {
-      setUsers(
-        clients.map((c) => ({
-          id: c.socketId,
-          name: c.name,
-          isActive: true,
-        }))
-      );
+    // Listeners
+    socketRef.current.on('room-users', (clients) => {
+      setUsers(clients);
     });
 
-    socketRef.current.on("receive-code", (newCode) => {
+    socketRef.current.on('receive-code', (newCode) => {
       setCode(newCode);
     });
 
-    socketRef.current.on("receive-language", (newLang) => {
+    socketRef.current.on('receive-language', (newLang) => {
       setLanguage(newLang);
     });
 
-    socketRef.current.on("user-left", ({ socketId }) => {
-      setUsers((prev) => prev.filter((u) => u.id !== socketId));
+    socketRef.current.on('user-joined', ({ username: joinedUser }) => {
+      console.log(`${joinedUser} joined the room`);
     });
 
+    // Cleanup on unmount
     return () => {
       socketRef.current.disconnect();
+      socketRef.current.off('room-users');
+      socketRef.current.off('receive-code');
+      socketRef.current.off('receive-language');
     };
-
   }, [roomId, username]);
 
-  // CODE CHANGE
+  // --- 2. HANDLERS FOR SYNCING ---
   const handleCodeChange = (newCode) => {
     setCode(newCode);
-
-    if (socketRef.current) {
-      socketRef.current.emit("code-change", {
-        roomId,
-        code: newCode,
-      });
-    }
+    // Dusre users ko code bhejें
+    socketRef.current.emit('code-change', { roomId, code: newCode });
   };
 
-  // LANGUAGE CHANGE
-  const handleLanguageChange = (e) => {
-
-    const newLang = e.target.value;
+  const handleLanguageChange = (newLang) => {
     setLanguage(newLang);
-
-    if (socketRef.current) {
-      socketRef.current.emit("language-change", {
-        roomId,
-        language: newLang,
-      });
-    }
+    // Dusre users ko language update bhejें
+    socketRef.current.emit('language-change', { roomId, language: newLang });
   };
 
-  // RUN CODE
-  const runCode = async () => {
-
+  // --- 3. REAL CODE EXECUTION (via Backend) ---
+  const handleRunCode = useCallback(async () => {
     setIsRunning(true);
-    setOutput("Running...");
-
+    setOutput("Running code...");
+    
     try {
-
-      const response = await fetch("http://localhost:5000/run", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          code,
-          language
-        })
+      const response = await axios.post(`${BACKEND_URL}/api/execute`, {
+        language: language,
+        code: code
       });
 
-      const data = await response.json();
-
-      setOutput(data.output || "No output");
-
+      // Backend se jo output aayega use console mein set karein
+      setOutput(response.data.output || "Code executed with no output.");
     } catch (error) {
-
-      console.error(error);
-      setOutput("Execution error");
-
+      console.error("Execution error:", error);
+      const errorMsg = error.response?.data?.error || error.message;
+      setOutput(`Error: ${errorMsg}`);
+    } finally {
+      setIsRunning(false);
     }
+  }, [code, language]);
 
-    setIsRunning(false);
-
-  };
-
-  // COPY ROOM LINK
   const handleCopyRoomLink = () => {
-
-    const roomLink = `${window.location.origin}/room/${roomId}`;
-
+    const roomLink = `${window.location.origin}?room=${roomId}`;
     navigator.clipboard.writeText(roomLink);
-
-    alert("Room link copied!");
-
+    alert('Room link copied to clipboard!');
   };
 
   return (
     <div className="editor-container">
-
-      {/* TOP BAR */}
+      {/* Top Bar */}
       <div className="editor-topbar">
-
         <div className="topbar-left">
           <button className="btn btn-back" onClick={onBackToHome}>
             ← Back
           </button>
-
-          <span className="room-info">
-            Room: <strong>{roomId}</strong>
-          </span>
+          <span className="room-info">Room: <strong>{roomId}</strong></span>
         </div>
-
         <div className="topbar-center">
-          <h2 className="editor-title">
-            Collaborative Code Editor
-          </h2>
+          <h2 className="editor-title">Collaborative Code Editor</h2>
         </div>
-
         <div className="topbar-right">
-          <span className="users-count">
-            👥 {users.length} online
-          </span>
-
+          <span className="users-count">👥 {users.length} online</span>
           <button className="btn btn-copy" onClick={handleCopyRoomLink}>
             📋 Copy Link
           </button>
         </div>
-
       </div>
 
-      {/* MAIN EDITOR */}
+      {/* Main Content */}
       <div className="editor-main">
-
         <div className="editor-left">
-
           <div className="editor-toolbar">
-
             <select
               value={language}
-              onChange={handleLanguageChange}
+              onChange={(e) => handleLanguageChange(e.target.value)}
               className="language-select"
             >
               <option value="javascript">JavaScript</option>
               <option value="python">Python</option>
               <option value="cpp">C++</option>
             </select>
-
             <button
               className="btn btn-run"
-              onClick={runCode}
+              onClick={handleRunCode}
               disabled={isRunning}
             >
-              {isRunning ? "⏳ Running..." : "▶ Run Code"}
+              {isRunning ? '⏳ Running...' : '▶ Run Code'}
             </button>
-
           </div>
 
           <CodeEditor
             code={code}
-            setCode={handleCodeChange}
+            setCode={handleCodeChange} // Sync ke saath setCode use karein
             language={language}
           />
-
         </div>
 
-        {/* USERS */}
         <div className="editor-right">
           <UsersList users={users} />
         </div>
-
       </div>
 
-      {/* OUTPUT + AI */}
+      {/* Bottom Section */}
       <div className="editor-bottom">
-
         <div className="bottom-left">
-
           <div className="output-section">
             <h3>Output Console</h3>
             <OutputConsole output={output} />
           </div>
-
         </div>
-
         <div className="bottom-right">
-
           <div className="ai-section">
             <h3>AI Assistant</h3>
             <AIExplain code={code} />
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

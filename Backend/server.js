@@ -8,144 +8,123 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+// Models (Ensure your models/User.js exists)
 const User = require('./models/User');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-const MONGODB_URI =
-    process.env.MONGODB_URI;
+// 1. Database Connection
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/collab-code";
 mongoose
     .connect(MONGODB_URI)
-    .then(() => console.log("Connected to MongoDB!"))
-    .catch((err) => console.error("Failed to connect to MongoDB:", err));
+    .then(() => console.log("✅ Connected to MongoDB!"))
+    .catch((err) => console.error("❌ Failed to connect to MongoDB:", err));
 
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: "*", // Production mein yahan apne frontend ka URL daalein
     }
 });
 
-// Mock AI Explain Endpoint
-app.post('/api/explain', (req, res) => {
-    const { code } = req.body;
-    if (!code) return res.status(400).json({ error: "Code is required" });
-
-    const mockExplanations = [
-        "This code appears to be a program that operates with a function. It uses console.log for output and demonstrates basic programming concepts. The code is syntactically correct and ready to run. You can click \"Run Code\" to see the output.",
-        "The provided code snippet shows variable declarations and logic flow. Output generation is present. This is a good example of basic programming. Feel free to modify it and re-run!",
-        "This code contains proper syntax and uses standard methods. It is ready for execution. You can enhance it by adding more complex logic, functions, or algorithms."
-    ];
-    const randomExplanation = mockExplanations[Math.floor(Math.random() * mockExplanations.length)];
-
-    setTimeout(() => {
-        res.json({ explanation: randomExplanation });
-    }, 1500);
-});
-
-// Piston Code Execution API mapping
-const pistonLanguageMap = {
-    'javascript': { language: 'javascript', version: '18.15.0' },
-    'python': { language: 'python', version: '3.10.0' },
-    'cpp': { language: 'c++', version: '10.2.0' }
-};
-
-app.post('/api/execute', async (req, res) => {
-    const { language, code } = req.body;
-
-    if (!language || !pistonLanguageMap[language]) {
-        return res.status(400).json({ error: 'Unsupported language' });
-    }
-
-    try {
-        const response = await axios.post('https://emkc.org/api/v2/piston/execute', {
-            language: pistonLanguageMap[language].language,
-            version: pistonLanguageMap[language].version,
-            files: [{ content: code }],
-        });
-
-        const result = response.data.run;
-        if (result.stderr) {
-            res.json({ output: result.stderr });
-        } else {
-            res.json({ output: result.stdout || "Code executed successfully (no output)" });
-        }
-    } catch (err) {
-        console.error("Execution error:", err.message);
-        res.status(500).json({ error: 'Failed to execute code: ' + err.message });
-    }
-});
-
-// Auth Routes
+// 2. Auth Routes
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
         if (!username || !email || !password) {
-            return res.status(400).json({ error: 'Username, email, and password are required' });
+            return res.status(400).json({ error: 'All fields are required' });
         }
-
         const existingUser = await User.findOne({ $or: [{ username }, { email }] });
         if (existingUser) {
             return res.status(400).json({ error: 'Username or email already exists' });
         }
-
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
 
-        const token = jwt.sign({ userId: newUser._id, username, email }, JWT_SECRET, { expiresIn: '1d' });
-        res.status(201).json({ message: 'User registered successfully', token, username });
+        const token = jwt.sign({ userId: newUser._id, username }, JWT_SECRET, { expiresIn: '1d' });
+        res.status(201).json({ message: 'User registered', token, username });
     } catch (err) {
-        console.error("Registration error:", err.message);
-        res.status(500).json({ error: 'Registration failed: ' + err.message });
+        res.status(500).json({ error: 'Registration failed' });
     }
 });
 
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
-        }
-
         const user = await User.findOne({ email });
-        if (!user) {
+        if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ error: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign({ userId: user._id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
-        res.status(200).json({ message: 'Login successful', token, username: user.username });
+        const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '1d' });
+        res.json({ token, username: user.username });
     } catch (err) {
-        console.error("Login error:", err.message);
-        res.status(500).json({ error: 'Login failed: ' + err.message });
+        res.status(500).json({ error: 'Login failed' });
     }
 });
 
-// Socket.io for Real-time collaboration
+// 3. Code Execution API (Piston Integration)
+const pistonLanguageMap = {
+    'javascript': { language: 'javascript', version: '18.15.0' },
+    'python': { language: 'python', version: '3.10.0' },
+    'cpp': { language: 'c++', version: '10.2.0' }
+};
+
+// server.js update
+// server.js update
+app.post('/api/execute', async (req, res) => {
+    const { language, code } = req.body;
+
+    // JavaScript ke liye hum simple 'eval' ya backend execution de sakte hain
+    // Lekin Piston band hai, isliye hum ek message return karenge ya Judge0 integrate karenge.
+    
+    if (language === 'javascript') {
+        try {
+            // Server-side simple JS execution (Warning: Security risk for production)
+            // For learning/local project only:
+            let output = "";
+            const originalLog = console.log;
+            console.log = (...args) => { output += args.join(" ") + "\n"; };
+            
+            eval(code); 
+            
+            console.log = originalLog;
+            res.json({ output: output || "Executed successfully (no output)" });
+        } catch (err) {
+            res.status(400).json({ error: err.message });
+        }
+    } else {
+        res.status(503).json({ 
+            error: "Public Piston API is down/restricted. Please host your own Piston instance using Docker to run Python/C++." 
+        });
+    }
+});
+// 4. AI Explanation (Mock)
+app.post('/api/explain', (req, res) => {
+    const { code } = req.body;
+    const explanations = [
+        "This code defines logic to process data and output results.",
+        "Your code uses standard syntax and is structured correctly.",
+        "This snippet demonstrates functional programming in the selected language."
+    ];
+    const randomExp = explanations[Math.floor(Math.random() * explanations.length)];
+    setTimeout(() => res.json({ explanation: randomExp }), 1000);
+});
+
+// 5. Socket.io Logic
 const userSocketMap = {};
 
 function getAllConnectedClients(roomId) {
     return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map((socketId) => {
-        return {
-            socketId,
-            name: userSocketMap[socketId]
-        };
+        return { socketId, username: userSocketMap[socketId] };
     });
 }
 
 io.on('connection', (socket) => {
-    console.log('User Connected:', socket.id);
-
     socket.on('join-room', ({ roomId, username }) => {
         userSocketMap[socket.id] = username || 'Anonymous';
         socket.join(roomId);
@@ -155,7 +134,7 @@ io.on('connection', (socket) => {
 
         socket.to(roomId).emit('user-joined', {
             socketId: socket.id,
-            name: userSocketMap[socket.id]
+            username: userSocketMap[socket.id]
         });
     });
 
@@ -173,56 +152,13 @@ io.on('connection', (socket) => {
             if (roomId !== socket.id) {
                 socket.to(roomId).emit('user-left', {
                     socketId: socket.id,
-                    name: userSocketMap[socket.id]
+                    username: userSocketMap[socket.id]
                 });
             }
         });
-    });
-
-    socket.on('disconnect', () => {
         delete userSocketMap[socket.id];
-        console.log('User Disconnected:', socket.id);
     });
 });
-
-// CODE EXECUTION ROUTE
-app.post("/run", async (req, res) => {
-
-  const { code, language } = req.body;
-
-  try {
-
-    const response = await axios.post(
-      "https://emkc.org/api/v2/piston/execute",
-      {
-        language: language,
-        version: "*",
-        files: [{ content: code }]
-      }
-    );
-
-    const data = response.data;
-
-    console.log("Piston Response:", data); // debugging
-
-    res.json({
-      output: data.run.stdout || data.run.stderr
-    });
-
-  } catch (error) {
-
-    console.error(error);
-
-    res.status(500).json({
-      error: "Execution failed"
-    });
-
-  }
-
-});
-
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-module.exports = app;
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
