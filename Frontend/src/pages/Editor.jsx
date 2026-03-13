@@ -114,7 +114,7 @@ export default function Editor({ roomId, onBackToHome, username = "Anonymous" })
   // COPY ROOM LINK
   const handleCopyRoomLink = () => {
 
-    const roomLink = `${window.location.origin}?room=${roomId}`;
+    const roomLink = `${window.location.origin}/room/${roomId}`;
 
     navigator.clipboard.writeText(roomLink);
 
