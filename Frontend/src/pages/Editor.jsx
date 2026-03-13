@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import CodeEditor from "../components/CodeEditor.jsx";
@@ -8,24 +7,6 @@ import AIExplain from "../components/AIExplain.jsx";
 import "../styles/editor.css";
 
 export default function Editor({ roomId, onBackToHome, username = "Anonymous" }) {
-=======
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { io } from 'socket.io-client'
-import axios from 'axios'
-import CodeEditor from '../components/CodeEditor.jsx'
-import OutputConsole from '../components/OutputConsole.jsx'
-import UsersList from '../components/UsersList.jsx'
-import AIExplain from '../components/AIExplain.jsx'
-import '../styles/editor.css'
-// rnadom comment added here
-export default function Editor({ roomId, onBackToHome, username = 'Anonymous' }) {
-  const [code, setCode] = useState('// Start coding here\nconsole.log("Hello, World!");')
-  const [language, setLanguage] = useState('javascript')
-  const [output, setOutput] = useState('')
-  const [isRunning, setIsRunning] = useState(false)
-  const [users, setUsers] = useState([])
-  const socketRef = useRef(null)
->>>>>>> 57d5661bfffac855d0ff8fe21a64e6d4b23764f6
 
   const [code, setCode] = useState('// Start coding here\nconsole.log("Hello, World!");');
   const [language, setLanguage] = useState("javascript");   // ✅ fixed
@@ -37,10 +18,6 @@ export default function Editor({ roomId, onBackToHome, username = 'Anonymous' })
 
   // SOCKET CONNECTION
   useEffect(() => {
-<<<<<<< HEAD
-=======
-    socketRef.current = io('https://code-editor-m6k6.vercel.app')
->>>>>>> 57d5661bfffac855d0ff8fe21a64e6d4b23764f6
 
     socketRef.current = io("http://localhost:5000");
 
@@ -107,20 +84,6 @@ export default function Editor({ roomId, onBackToHome, username = 'Anonymous' })
     setOutput("Running...");
 
     try {
-<<<<<<< HEAD
-=======
-      const response = await axios.post('https://code-editor-m6k6.vercel.app/api/execute', {
-        language,
-        code
-      })
-      setOutput(response.data.output)
-    } catch (error) {
-      setOutput(`Error: ${error.response?.data?.error || error.message}`)
-    } finally {
-      setIsRunning(false)
-    }
-  }, [code, language])
->>>>>>> 57d5661bfffac855d0ff8fe21a64e6d4b23764f6
 
       const response = await fetch("http://localhost:5000/run", {
         method: "POST",
