@@ -1,0 +1,133 @@
+.home-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: #0f172a;
+  overflow-y: auto;
+}
+
+.home-content {
+  max-width: 900px;
+  width: 100%;
+}
+
+.home-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.home-title {
+  font-size: 42px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 15px;
+  letter-spacing: -1px;
+}
+
+.home-description {
+  font-size: 16px;
+  color: #cbd5e1;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 30px;
+  margin-bottom: 50px;
+}
+
+.action-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 30px;
+  transition: all 0.3s ease;
+}
+
+.action-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.1);
+  transform: translateY(-4px);
+}
+
+.action-card h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 10px;
+}
+
+.action-card p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-input {
+  width: 100%;
+}
+
+.input-group .btn {
+  width: 100%;
+}
+
+.home-features {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+}
+
+.home-features h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 20px;
+}
+
+.home-features ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.home-features li {
+  font-size: 14px;
+  color: #cbd5e1;
+  padding: 10px;
+  background-color: rgba(59, 130, 246, 0.05);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.home-features li:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+@media (max-width: 600px) {
+  .home-title {
+    font-size: 28px;
+  }
+
+  .home-actions {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .home-features ul {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,29 @@
+.code-editor-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #0f172a;
+}
+
+.code-editor-wrapper .monaco-editor {
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+
+.code-editor-wrapper .monaco-editor-background {
+  background-color: #0f172a !important;
+}
+
+/* Monaco Editor Theming */
+.code-editor-wrapper .monaco-editor.vs-dark {
+  background-color: #0f172a !important;
+}
+
+.code-editor-wrapper .line-numbers {
+  background-color: #1e293b !important;
+  color: #64748b !important;
+}
+
+.code-editor-wrapper .view-overlays {
+  background-color: transparent;
+}
