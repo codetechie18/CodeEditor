@@ -1,62 +1,80 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { io } from 'socket.io-client'
+import axios from 'axios'
 import CodeEditor from '../components/CodeEditor.jsx'
 import OutputConsole from '../components/OutputConsole.jsx'
 import UsersList from '../components/UsersList.jsx'
 import AIExplain from '../components/AIExplain.jsx'
 import '../styles/editor.css'
 
-export default function Editor({ roomId, onBackToHome }) {
+export default function Editor({ roomId, onBackToHome, username = 'Anonymous' }) {
   const [code, setCode] = useState('// Start coding here\nconsole.log("Hello, World!");')
   const [language, setLanguage] = useState('javascript')
   const [output, setOutput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
-  const [users, setUsers] = useState([
-    { id: 1, name: 'You', isActive: true }
-  ])
+  const [users, setUsers] = useState([])
+  const socketRef = useRef(null)
+
+  useEffect(() => {
+    socketRef.current = io('http://localhost:5000')
+
+    socketRef.current.emit('join-room', { roomId, username })
+
+    socketRef.current.on('room-users', (clients) => {
+      setUsers(clients.map(c => ({ id: c.socketId, name: c.name, isActive: true })))
+    })
+
+    socketRef.current.on('user-joined', ({ socketId, name }) => {
+      console.log(`${name} joined`)
+    })
+
+    socketRef.current.on('user-left', ({ socketId, name }) => {
+      setUsers((prev) => prev.filter((u) => u.id !== socketId))
+    })
+
+    socketRef.current.on('receive-code', (newCode) => {
+      setCode(newCode)
+    })
+    
+    socketRef.current.on('receive-language', (newLanguage) => {
+      setLanguage(newLanguage)
+    })
+
+    return () => {
+      socketRef.current.disconnect()
+    }
+  }, [roomId, username])
+
+  const handleCodeChange = (newCode) => {
+    setCode(newCode)
+    if (socketRef.current) {
+      socketRef.current.emit('code-change', { roomId, code: newCode })
+    }
+  }
+  
+  const handleLanguageChange = (e) => {
+    const newLang = e.target.value;
+    setLanguage(newLang);
+    if (socketRef.current) {
+      socketRef.current.emit('language-change', { roomId, language: newLang })
+    }
+  }
 
   const handleRunCode = useCallback(async () => {
     setIsRunning(true)
+    setOutput('Running...')
     try {
-      // Simulate code execution
-      if (language === 'javascript') {
-        const result = await executeJavaScript(code)
-        setOutput(result)
-      } else {
-        setOutput(`Execution for ${language} not implemented in this demo.`)
-      }
+      const response = await axios.post('http://localhost:5000/api/execute', {
+        language,
+        code
+      })
+      setOutput(response.data.output)
     } catch (error) {
-      setOutput(`Error: ${error.message}`)
+      setOutput(`Error: ${error.response?.data?.error || error.message}`)
     } finally {
       setIsRunning(false)
     }
   }, [code, language])
-
-  const executeJavaScript = async (jsCode) => {
-    return new Promise((resolve) => {
-      const logs = []
-      const originalLog = console.log
-      const originalError = console.error
-
-      console.log = (...args) => {
-        logs.push(args.join(' '))
-      }
-      console.error = (...args) => {
-        logs.push('ERROR: ' + args.join(' '))
-      }
-
-      try {
-        // Create a new function from the code string
-        const fn = new Function(jsCode)
-        fn()
-        resolve(logs.join('\n') || 'Code executed successfully (no output)')
-      } catch (error) {
-        resolve(`Error: ${error.message}`)
-      } finally {
-        console.log = originalLog
-        console.error = originalError
-      }
-    })
-  }
 
   const handleCopyRoomLink = () => {
     const roomLink = `${window.location.origin}?room=${roomId}`
@@ -91,7 +109,7 @@ export default function Editor({ roomId, onBackToHome }) {
           <div className="editor-toolbar">
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={handleLanguageChange}
               className="language-select"
             >
               <option value="javascript">JavaScript</option>
@@ -109,7 +127,7 @@ export default function Editor({ roomId, onBackToHome }) {
 
           <CodeEditor
             code={code}
-            setCode={setCode}
+            setCode={handleCodeChange}
             language={language}
           />
         </div>
