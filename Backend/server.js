@@ -185,5 +185,42 @@ io.on('connection', (socket) => {
     });
 });
 
+// CODE EXECUTION ROUTE
+app.post("/run", async (req, res) => {
+
+  const { code, language } = req.body;
+
+  try {
+
+    const response = await axios.post(
+      "https://emkc.org/api/v2/piston/execute",
+      {
+        language: language,
+        version: "*",
+        files: [{ content: code }]
+      }
+    );
+
+    const data = response.data;
+
+    console.log("Piston Response:", data); // debugging
+
+    res.json({
+      output: data.run.stdout || data.run.stderr
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Execution failed"
+    });
+
+  }
+
+});
+
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

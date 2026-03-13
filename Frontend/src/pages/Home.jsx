@@ -52,7 +52,7 @@ export default function Home({ onCreateRoom, onJoinRoom, username, onLogout }) {
             </div>
           </div>
         </div>
-
+         
         <div className="home-features">
           <h3>Features</h3>
           <ul>
