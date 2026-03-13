@@ -15,18 +15,19 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://sujal06tiwari_db_user:kvzGWFjXQcugGQY4@invencible.5ookquu.mongodb.net/?appName=invencible";
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-}).then(() => console.log('Connected to MongoDB!'))
-  .catch(err => console.error('Failed to connect to MongoDB:', err));
+const MONGODB_URI =
+    process.env.MONGODB_URI ||
+    "mongodb+srv://sujal06tiwari_db_user:kvzGWFjXQcugGQY4@invencible.5ookquu.mongodb.net/?appName=invencible";
 
+mongoose
+    .connect(MONGODB_URI)
+    .then(() => console.log("Connected to MongoDB!"))
+    .catch((err) => console.error("Failed to connect to MongoDB:", err));
 
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", 
+        origin: "*",
     }
 });
 
@@ -41,7 +42,7 @@ app.post('/api/explain', (req, res) => {
         "This code contains proper syntax and uses standard methods. It is ready for execution. You can enhance it by adding more complex logic, functions, or algorithms."
     ];
     const randomExplanation = mockExplanations[Math.floor(Math.random() * mockExplanations.length)];
-    
+
     setTimeout(() => {
         res.json({ explanation: randomExplanation });
     }, 1500);
@@ -56,7 +57,7 @@ const pistonLanguageMap = {
 
 app.post('/api/execute', async (req, res) => {
     const { language, code } = req.body;
-    
+
     if (!language || !pistonLanguageMap[language]) {
         return res.status(400).json({ error: 'Unsupported language' });
     }
@@ -67,7 +68,7 @@ app.post('/api/execute', async (req, res) => {
             version: pistonLanguageMap[language].version,
             files: [{ content: code }],
         });
-        
+
         const result = response.data.run;
         if (result.stderr) {
             res.json({ output: result.stderr });
@@ -150,10 +151,10 @@ io.on('connection', (socket) => {
     socket.on('join-room', ({ roomId, username }) => {
         userSocketMap[socket.id] = username || 'Anonymous';
         socket.join(roomId);
-        
+
         const clients = getAllConnectedClients(roomId);
         io.to(roomId).emit('room-users', clients);
-        
+
         socket.to(roomId).emit('user-joined', {
             socketId: socket.id,
             name: userSocketMap[socket.id]
@@ -163,7 +164,7 @@ io.on('connection', (socket) => {
     socket.on('code-change', ({ roomId, code }) => {
         socket.to(roomId).emit('receive-code', code);
     });
-    
+
     socket.on('language-change', ({ roomId, language }) => {
         socket.to(roomId).emit('receive-language', language);
     });
