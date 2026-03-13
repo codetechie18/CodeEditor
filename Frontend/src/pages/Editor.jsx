@@ -16,7 +16,7 @@ export default function Editor({ roomId, onBackToHome, username = 'Anonymous' })
   const socketRef = useRef(null)
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000')
+    socketRef.current = io('https://code-editor-m6k6.vercel.app')
 
     socketRef.current.emit('join-room', { roomId, username })
 
@@ -64,7 +64,7 @@ export default function Editor({ roomId, onBackToHome, username = 'Anonymous' })
     setIsRunning(true)
     setOutput('Running...')
     try {
-      const response = await axios.post('http://localhost:5000/api/execute', {
+      const response = await axios.post('https://code-editor-m6k6.vercel.app/api/execute', {
         language,
         code
       })

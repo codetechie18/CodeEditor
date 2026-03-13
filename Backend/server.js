@@ -84,21 +84,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required' });
+        const { username, email, password } = req.body;
+        if (!username || !email || !password) {
+            return res.status(400).json({ error: 'Username, email, and password are required' });
         }
 
-        const existingUser = await User.findOne({ username });
+        const existingUser = await User.findOne({ $or: [{ username }, { email }] });
         if (existingUser) {
-            return res.status(400).json({ error: 'Username already exists' });
+            return res.status(400).json({ error: 'Username or email already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword });
+        const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
 
-        const token = jwt.sign({ userId: newUser._id, username }, JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign({ userId: newUser._id, username, email }, JWT_SECRET, { expiresIn: '1d' });
         res.status(201).json({ message: 'User registered successfully', token, username });
     } catch (err) {
         console.error(err);
@@ -108,12 +108,12 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required' });
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        const user = await User.findOne({ username });
+        const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
@@ -123,8 +123,8 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ userId: user._id, username }, JWT_SECRET, { expiresIn: '1d' });
-        res.status(200).json({ message: 'Login successful', token, username });
+        const token = jwt.sign({ userId: user._id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
+        res.status(200).json({ message: 'Login successful', token, username: user.username });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });

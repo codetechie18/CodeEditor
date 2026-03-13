@@ -25,7 +25,7 @@ export default function Auth({ onAuth }) {
     return { level: 3, text: 'Strong' }
   }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -50,12 +50,33 @@ export default function Auth({ onAuth }) {
       }
     }
 
-    // Simulate success
-    setSuccess(true)
-    setTimeout(() => {
-      const displayName = isLogin ? email.split('@')[0] : username
-      onAuth(displayName)
-    }, 600)
+    try {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const payload = isLogin 
+        ? { email, password } 
+        : { username, email, password };
+
+      const response = await fetch(`https://code-editor-m6k6.vercel.app${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Authentication failed');
+        return;
+      }
+
+      setSuccess(true)
+      setTimeout(() => {
+        onAuth(data.username, data.token)
+      }, 600)
+
+    } catch (err) {
+      setError('Network error. Please try again.');
+    }
   }
 
   const toggleMode = () => {
