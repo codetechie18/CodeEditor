@@ -16,9 +16,7 @@ app.use(express.json());
 
 // Connect to MongoDB
 const MONGODB_URI =
-    process.env.MONGODB_URI ||
-    "mongodb+srv://sujal06tiwari_db_user:kvzGWFjXQcugGQY4@invencible.5ookquu.mongodb.net/?appName=invencible";
-
+    process.env.MONGODB_URI;
 mongoose
     .connect(MONGODB_URI)
     .then(() => console.log("Connected to MongoDB!"))
