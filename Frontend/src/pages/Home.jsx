@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import '../styles/home.css'
 
-export default function Home({ onCreateRoom, onJoinRoom }) {
+export default function Home({ onCreateRoom, onJoinRoom, username, onLogout }) {
   const [roomIdInput, setRoomIdInput] = useState('')
 
   const handleJoin = () => {
@@ -13,6 +13,10 @@ export default function Home({ onCreateRoom, onJoinRoom }) {
 
   return (
     <div className="home-container">
+      <button className="btn btn-logout" onClick={onLogout}>
+        Logout
+      </button>
+      
       <div className="home-content">
         <div className="home-header">
           <h1 className="home-title">Real-Time Collaborative Code Editor</h1>

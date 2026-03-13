@@ -6,6 +6,23 @@
   padding: 40px 20px;
   background-color: #0f172a;
   overflow-y: auto;
+  position: relative;
+}
+
+.btn-logout {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+}
+
+.btn-logout:hover {
+  background-color: #ef4444; /* red color on hover */
+  color: white;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .home-content {
