@@ -74,8 +74,8 @@ app.post('/api/execute', async (req, res) => {
             res.json({ output: result.stdout || "Code executed successfully (no output)" });
         }
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to execute code' });
+        console.error("Execution error:", err.message);
+        res.status(500).json({ error: 'Failed to execute code: ' + err.message });
     }
 });
 
@@ -101,8 +101,8 @@ app.post('/api/auth/register', async (req, res) => {
         const token = jwt.sign({ userId: newUser._id, username, email }, JWT_SECRET, { expiresIn: '1d' });
         res.status(201).json({ message: 'User registered successfully', token, username });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Registration failed' });
+        console.error("Registration error:", err.message);
+        res.status(500).json({ error: 'Registration failed: ' + err.message });
     }
 });
 
@@ -126,8 +126,8 @@ app.post('/api/auth/login', async (req, res) => {
         const token = jwt.sign({ userId: user._id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1d' });
         res.status(200).json({ message: 'Login successful', token, username: user.username });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Login failed' });
+        console.error("Login error:", err.message);
+        res.status(500).json({ error: 'Login failed: ' + err.message });
     }
 });
 
@@ -224,3 +224,5 @@ app.post("/run", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+module.exports = app;
