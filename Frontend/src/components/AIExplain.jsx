@@ -14,7 +14,7 @@ export default function AIExplain({ code }) {
 
     setIsLoading(true)
     try {
-      const response = await axios.post('http://localhost:5000/api/explain', { code })
+      const response = await axios.post('https://code-editor-m6k6.vercel.app/api/explain', { code })
       setExplanation(response.data.explanation)
     } catch (error) {
       setExplanation('Error: Could not generate explanation')
