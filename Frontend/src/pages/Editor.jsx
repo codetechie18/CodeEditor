@@ -6,7 +6,7 @@ import OutputConsole from '../components/OutputConsole.jsx'
 import UsersList from '../components/UsersList.jsx'
 import AIExplain from '../components/AIExplain.jsx'
 import '../styles/editor.css'
-
+// rnadom comment added here
 export default function Editor({ roomId, onBackToHome, username = 'Anonymous' }) {
   const [code, setCode] = useState('// Start coding here\nconsole.log("Hello, World!");')
   const [language, setLanguage] = useState('javascript')
